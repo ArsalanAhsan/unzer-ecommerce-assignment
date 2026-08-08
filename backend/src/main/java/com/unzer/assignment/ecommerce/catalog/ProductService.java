@@ -21,4 +21,12 @@ public class ProductService {
                 .map(ProductResponse::from)
                 .toList();
     }
+    @Transactional(readOnly = true)
+    public Product getActiveProduct(Long productId) {
+        return productRepository
+                .findByIdAndActiveTrue(productId)
+                .orElseThrow(() ->
+                        new ProductNotFoundException(productId)
+                );
+    }
 }
