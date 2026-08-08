@@ -6,6 +6,8 @@ import com.unzer.assignment.ecommerce.inventory.InventoryService;
 import com.unzer.assignment.ecommerce.order.Order;
 import com.unzer.assignment.ecommerce.order.OrderService;
 import org.springframework.stereotype.Service;
+import com.unzer.assignment.ecommerce.payment.Payment;
+import com.unzer.assignment.ecommerce.payment.PaymentService;
 
 @Service
 public class CheckoutService {
@@ -13,15 +15,18 @@ public class CheckoutService {
     private final ProductService productService;
     private final OrderService orderService;
     private final InventoryService inventoryService;
+    private final PaymentService paymentService;
 
     public CheckoutService(
             ProductService productService,
             OrderService orderService,
-            InventoryService inventoryService
+            InventoryService inventoryService,
+            PaymentService paymentService
     ) {
         this.productService = productService;
         this.orderService = orderService;
         this.inventoryService = inventoryService;
+        this.paymentService = paymentService;
     }
 
     public CheckoutResponse checkout(CheckoutRequest request) {
@@ -61,9 +66,20 @@ public class CheckoutService {
                         order.getId()
                 );
 
+        String idempotencyKey =
+                "checkout-" + updatedOrder.getId();
+
+        Payment payment =
+                paymentService.createPayment(
+                        updatedOrder,
+                        request.paymentMethod(),
+                        idempotencyKey
+                );
+
         return new CheckoutResponse(
                 updatedOrder.getId(),
                 updatedOrder.getStatus(),
+                payment.getId(),
                 updatedOrder.getTotalAmountMinor(),
                 updatedOrder.getCurrency()
         );

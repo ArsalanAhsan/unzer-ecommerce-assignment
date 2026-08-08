@@ -10,7 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import org.junit.jupiter.api.BeforeEach;
-
+import com.unzer.assignment.ecommerce.payment.PaymentMethod;
+import com.unzer.assignment.ecommerce.payment.Payment;
+import com.unzer.assignment.ecommerce.payment.PaymentRepository;
+import com.unzer.assignment.ecommerce.payment.PaymentStatus;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -35,6 +38,9 @@ class CheckoutServiceIntegrationTest {
     @Autowired
     private InventoryRepository inventoryRepository;
 
+    @Autowired
+    private PaymentRepository paymentRepository;
+
     @Test
     void shouldCreateOrderAndReserveInventory() {
 
@@ -42,7 +48,9 @@ class CheckoutServiceIntegrationTest {
         CheckoutRequest request =
                 new CheckoutRequest(
                         1L,
-                        2
+                        2,
+                        PaymentMethod.CREDIT_CARD,
+                        "card-test"
                 );
 
         // When
@@ -72,5 +80,24 @@ class CheckoutServiceIntegrationTest {
 
         assertThat(inventory.getReservedQuantity())
                 .isEqualTo(2);
+
+        assertThat(paymentRepository.findAll())
+                .hasSize(1);
+
+        Payment payment =
+                paymentRepository.findAll()
+                        .get(0);
+
+        assertThat(payment.getOrderId())
+                .isEqualTo(response.orderId());
+
+        assertThat(payment.getStatus())
+                .isEqualTo(PaymentStatus.PENDING);
+
+        assertThat(payment.getAmountMinor())
+                .isEqualTo(5998L);
+
+        assertThat(payment.getCurrency())
+                .isEqualTo("EUR");
     }
 }

@@ -7,6 +7,7 @@ import java.util.UUID;
 public record CheckoutResponse(
         UUID orderId,
         OrderStatus status,
+        UUID paymentId,
         Long totalAmountMinor,
         String currency
 ) {
