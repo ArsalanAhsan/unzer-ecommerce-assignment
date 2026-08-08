@@ -48,4 +48,17 @@ public interface InventoryRepository
             @Param("productId") Long productId,
             @Param("quantity") int quantity
     );
+    // Used by integration tests to establish a deterministic starting state.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        UPDATE Inventory i
+        SET i.availableQuantity = :available,
+            i.reservedQuantity = :reserved
+        WHERE i.productId = :productId
+    """)
+    int resetStock(
+            @Param("productId") Long productId,
+            @Param("available") int available,
+            @Param("reserved") int reserved
+    );
 }

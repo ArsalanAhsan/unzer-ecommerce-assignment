@@ -12,10 +12,19 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
+import org.junit.jupiter.api.BeforeEach;
 @SpringBootTest
 @Transactional
 class InventoryServiceIntegrationTest {
+
+    @BeforeEach
+    void resetInventory() {
+        inventoryRepository.resetStock(
+                1L,
+                10,
+                0
+        );
+    }
 
     @Autowired
     private InventoryService inventoryService;
