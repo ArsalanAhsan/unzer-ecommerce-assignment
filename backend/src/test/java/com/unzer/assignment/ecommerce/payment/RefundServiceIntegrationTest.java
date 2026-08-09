@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -204,6 +205,72 @@ class RefundServiceIntegrationTest {
                 order,
                 payment
         );
+    }
+
+    @Test
+    void shouldRejectRefundForPendingPayment() {
+
+        // Given
+        Product product =
+                productRepository.findByIdAndActiveTrue(1L)
+                        .orElseThrow();
+
+        Order order =
+                orderService.createOrder(
+                        product,
+                        1
+                );
+
+        inventoryService.reserve(
+                order.getId(),
+                product.getId(),
+                1
+        );
+
+        orderService.markAwaitingPayment(
+                order.getId()
+        );
+
+        Order awaitingPaymentOrder =
+                orderService.getOrder(
+                        order.getId()
+                );
+
+        Payment payment =
+                paymentService.createPayment(
+                        awaitingPaymentOrder,
+                        PaymentMethod.CREDIT_CARD,
+                        "checkout-" + awaitingPaymentOrder.getId()
+                );
+
+        // Payment is still PENDING.
+
+        // When + Then
+        assertThatThrownBy(() ->
+                refundService.refund(
+                        payment.getId()
+                )
+        )
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(
+                        "Only successful payments can be refunded"
+                );
+
+        Payment unchangedPayment =
+                paymentRepository.findById(
+                        payment.getId()
+                ).orElseThrow();
+
+        assertThat(unchangedPayment.getStatus())
+                .isEqualTo(PaymentStatus.PENDING);
+
+        Order unchangedOrder =
+                orderRepository.findById(
+                        order.getId()
+                ).orElseThrow();
+
+        assertThat(unchangedOrder.getStatus())
+                .isEqualTo(OrderStatus.AWAITING_PAYMENT);
     }
 
     private record RefundTestContext(
