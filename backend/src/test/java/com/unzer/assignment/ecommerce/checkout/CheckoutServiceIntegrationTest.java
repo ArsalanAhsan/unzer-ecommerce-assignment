@@ -22,6 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 
 @SpringBootTest
 @Transactional
@@ -124,5 +126,57 @@ class CheckoutServiceIntegrationTest {
 
         assertThat(payment.getProviderTransactionId())
                 .isEqualTo("txn-test-123");
+    }
+    @Test
+    void shouldReturnRedirectUrlForWeroCheckout() {
+
+        // Given
+        CheckoutRequest request =
+                new CheckoutRequest(
+                        1L,
+                        1,
+                        PaymentMethod.WERO,
+                        null
+                );
+
+        when(paymentProvider.startPayment(
+                any(),
+                eq(PaymentMethod.WERO),
+                isNull()
+        )).thenReturn(
+                new PaymentStartResult(
+                        "s-wro-test",
+                        "txn-wero-test",
+                        "https://wero.example/redirect"
+                )
+        );
+
+        // When
+        CheckoutResponse response =
+                checkoutService.checkout(request);
+
+        // Then
+        assertThat(response.status())
+                .isEqualTo(OrderStatus.AWAITING_PAYMENT);
+
+        assertThat(response.redirectUrl())
+                .isEqualTo("https://wero.example/redirect");
+
+        Payment payment =
+                paymentRepository.findById(
+                        response.paymentId()
+                ).orElseThrow();
+
+        assertThat(payment.getMethod())
+                .isEqualTo(PaymentMethod.WERO);
+
+        assertThat(payment.getStatus())
+                .isEqualTo(PaymentStatus.PENDING);
+
+        assertThat(payment.getProviderPaymentTypeId())
+                .isEqualTo("s-wro-test");
+
+        assertThat(payment.getProviderTransactionId())
+                .isEqualTo("txn-wero-test");
     }
 }

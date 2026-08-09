@@ -6,12 +6,14 @@ import com.unzer.assignment.ecommerce.payment.PaymentProvider;
 import com.unzer.assignment.ecommerce.payment.PaymentStartResult;
 import com.unzer.payment.Unzer;
 import com.unzer.payment.communication.HttpCommunicationException;
+import com.unzer.payment.paymenttypes.Wero;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.util.Currency;
 
 @Component
@@ -38,22 +40,36 @@ public class UnzerPaymentProvider implements PaymentProvider {
 
         validateConfiguration();
 
-        if (method != PaymentMethod.CREDIT_CARD) {
-            throw new UnsupportedOperationException(
-                    "Payment method not implemented yet: " + method
-            );
-        }
-
-        if (paymentTypeId == null || paymentTypeId.isBlank()) {
+        if (method == null) {
             throw new IllegalArgumentException(
-                    "paymentTypeId is required for credit card payments"
+                    "Payment method is required"
             );
         }
 
-        return startCreditCardPayment(
-                order,
-                paymentTypeId
-        );
+        return switch (method) {
+
+            case CREDIT_CARD -> {
+
+                if (paymentTypeId == null || paymentTypeId.isBlank()) {
+                    throw new IllegalArgumentException(
+                            "paymentTypeId is required for credit card payments"
+                    );
+                }
+
+                yield startCreditCardPayment(
+                        order,
+                        paymentTypeId
+                );
+            }
+
+            case WERO ->
+                    startWeroPayment(order);
+
+            case OPEN_BANKING ->
+                    throw new UnsupportedOperationException(
+                            "Open Banking is not implemented in this vertical slice"
+                    );
+        };
     }
 
     private PaymentStartResult startCreditCardPayment(
@@ -64,15 +80,13 @@ public class UnzerPaymentProvider implements PaymentProvider {
         Unzer unzer = createClient();
 
         BigDecimal amount =
-                BigDecimal.valueOf(
-                        order.getTotalAmountMinor(),
-                        2
+                toMajorUnits(
+                        order.getTotalAmountMinor()
                 );
 
         try {
 
-            var callbackUrl =
-                    URI.create(returnUrl).toURL();
+            URL callbackUrl = createReturnUrl();
 
             var charge = unzer.charge(
                     amount,
@@ -81,28 +95,84 @@ public class UnzerPaymentProvider implements PaymentProvider {
                     callbackUrl
             );
 
-            String transactionId =
-                    charge.getId();
-
-            String redirectUrl =
-                    charge.getRedirectUrl() != null
-                            ? charge.getRedirectUrl().toString()
-                            : null;
-
             return new PaymentStartResult(
                     paymentTypeId,
-                    transactionId,
-                    redirectUrl
+                    charge.getId(),
+                    charge.getRedirectUrl() != null
+                            ? charge.getRedirectUrl().toString()
+                            : null
             );
 
         } catch (HttpCommunicationException exception) {
 
             throw new IllegalStateException(
-                    "Unzer payment request failed",
+                    "Unzer credit card payment request failed",
                     exception
             );
+        }
+    }
 
-        } catch (MalformedURLException exception) {
+    private PaymentStartResult startWeroPayment(
+            Order order
+    ) {
+
+        Unzer unzer = createClient();
+
+        BigDecimal amount =
+                toMajorUnits(
+                        order.getTotalAmountMinor()
+                );
+
+        try {
+
+            URL callbackUrl = createReturnUrl();
+
+            Wero wero =
+                    unzer.createPaymentType(
+                            new Wero()
+                    );
+
+            var charge = unzer.charge(
+                    amount,
+                    Currency.getInstance(order.getCurrency()),
+                    wero.getId(),
+                    callbackUrl
+            );
+
+            return new PaymentStartResult(
+                    wero.getId(),
+                    charge.getId(),
+                    charge.getRedirectUrl() != null
+                            ? charge.getRedirectUrl().toString()
+                            : null
+            );
+
+        } catch (HttpCommunicationException exception) {
+
+            throw new IllegalStateException(
+                    "Unzer Wero payment request failed",
+                    exception
+            );
+        }
+    }
+
+    private BigDecimal toMajorUnits(
+            Long amountMinor
+    ) {
+        return BigDecimal.valueOf(
+                amountMinor,
+                2
+        );
+    }
+
+    private URL createReturnUrl() {
+
+        try {
+            return URI.create(returnUrl)
+                    .toURL();
+
+        } catch (IllegalArgumentException |
+                 MalformedURLException exception) {
 
             throw new IllegalStateException(
                     "Invalid Unzer return URL: " + returnUrl,
