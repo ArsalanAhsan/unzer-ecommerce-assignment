@@ -35,6 +35,9 @@ public class Payment {
     @Column(name = "provider_payment_type_id")
     private String providerPaymentTypeId;
 
+    @Column(name = "provider_payment_id")
+    private String providerPaymentId;
+
     @Column(name = "provider_transaction_id")
     private String providerTransactionId;
 
@@ -68,9 +71,11 @@ public class Payment {
 
     public void attachProviderReferences(
             String paymentTypeId,
+            String paymentId,
             String transactionId
     ) {
         this.providerPaymentTypeId = paymentTypeId;
+        this.providerPaymentId = paymentId;
         this.providerTransactionId = transactionId;
         this.updatedAt = Instant.now();
     }
@@ -123,6 +128,8 @@ public class Payment {
         return status;
     }
 
+
+
     public Long getAmountMinor() {
         return amountMinor;
     }
@@ -141,5 +148,8 @@ public class Payment {
 
     public String getProviderTransactionId() {
         return providerTransactionId;
+    }
+    public String getProviderPaymentId() {
+        return providerPaymentId;
     }
 }

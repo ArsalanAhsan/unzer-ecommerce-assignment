@@ -9,4 +9,8 @@ public interface PaymentProvider {
             PaymentMethod method,
             String paymentTypeId
     );
+
+    PaymentProviderStatus getPaymentStatus(
+            String providerPaymentId
+    );
 }

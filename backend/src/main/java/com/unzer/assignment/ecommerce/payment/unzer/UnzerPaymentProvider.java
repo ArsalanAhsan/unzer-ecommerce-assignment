@@ -3,6 +3,7 @@ package com.unzer.assignment.ecommerce.payment.unzer;
 import com.unzer.assignment.ecommerce.order.Order;
 import com.unzer.assignment.ecommerce.payment.PaymentMethod;
 import com.unzer.assignment.ecommerce.payment.PaymentProvider;
+import com.unzer.assignment.ecommerce.payment.PaymentProviderStatus;
 import com.unzer.assignment.ecommerce.payment.PaymentStartResult;
 import com.unzer.payment.Unzer;
 import com.unzer.payment.communication.HttpCommunicationException;
@@ -97,6 +98,7 @@ public class UnzerPaymentProvider implements PaymentProvider {
 
             return new PaymentStartResult(
                     paymentTypeId,
+                    charge.getPaymentId(),
                     charge.getId(),
                     charge.getRedirectUrl() != null
                             ? charge.getRedirectUrl().toString()
@@ -141,6 +143,7 @@ public class UnzerPaymentProvider implements PaymentProvider {
 
             return new PaymentStartResult(
                     wero.getId(),
+                    charge.getPaymentId(),
                     charge.getId(),
                     charge.getRedirectUrl() != null
                             ? charge.getRedirectUrl().toString()
@@ -151,6 +154,48 @@ public class UnzerPaymentProvider implements PaymentProvider {
 
             throw new IllegalStateException(
                     "Unzer Wero payment request failed",
+                    exception
+            );
+        }
+    }
+
+    @Override
+    public PaymentProviderStatus getPaymentStatus(
+            String providerPaymentId
+    ) {
+
+        validateConfiguration();
+
+        try {
+            Unzer unzer = createClient();
+
+            var payment =
+                    unzer.fetchPayment(
+                            providerPaymentId
+                    );
+
+            return switch (payment.getPaymentState()) {
+
+                case COMPLETED ->
+                        PaymentProviderStatus.SUCCEEDED;
+
+                case CANCELED ->
+                        PaymentProviderStatus.REFUNDED;
+
+                case PENDING,
+                        CREATE,
+                        PARTLY,
+                        PAYMENT_REVIEW ->
+                        PaymentProviderStatus.PENDING;
+
+                case CHARGEBACK ->
+                        PaymentProviderStatus.FAILED;
+            };
+
+        } catch (HttpCommunicationException exception) {
+
+            throw new IllegalStateException(
+                    "Unable to fetch Unzer payment status",
                     exception
             );
         }

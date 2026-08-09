@@ -28,6 +28,7 @@ public class InventoryService {
             Long productId,
             int quantity
     ) {
+
         if (quantity <= 0) {
             throw new IllegalArgumentException(
                     "Quantity must be greater than zero"
@@ -35,7 +36,10 @@ public class InventoryService {
         }
 
         int affectedRows =
-                inventoryRepository.reserve(productId, quantity);
+                inventoryRepository.reserve(
+                        productId,
+                        quantity
+                );
 
         if (affectedRows == 0) {
             throw new OutOfStockException(productId);
@@ -46,7 +50,10 @@ public class InventoryService {
                         orderId,
                         productId,
                         quantity,
-                        Instant.now().plus(15, ChronoUnit.MINUTES)
+                        Instant.now().plus(
+                                15,
+                                ChronoUnit.MINUTES
+                        )
                 );
 
         reservationRepository.save(reservation);
@@ -63,12 +70,27 @@ public class InventoryService {
 
         for (InventoryReservation reservation : reservations) {
 
-            inventoryRepository.confirm(
-                    reservation.getProductId(),
-                    reservation.getQuantity()
-            );
+            int affectedRows =
+                    inventoryRepository.confirm(
+                            reservation.getProductId(),
+                            reservation.getQuantity()
+                    );
+
+            if (affectedRows == 0) {
+                throw new IllegalStateException(
+                        "Unable to confirm inventory reservation: "
+                                + reservation.getId()
+                );
+            }
 
             reservation.confirm();
+
+            /*
+             * The inventory bulk update uses clearAutomatically=true.
+             * This can detach previously loaded reservation entities,
+             * so explicitly save the updated reservation state.
+             */
+            reservationRepository.save(reservation);
         }
     }
 
@@ -83,12 +105,26 @@ public class InventoryService {
 
         for (InventoryReservation reservation : reservations) {
 
-            inventoryRepository.release(
-                    reservation.getProductId(),
-                    reservation.getQuantity()
-            );
+            int affectedRows =
+                    inventoryRepository.release(
+                            reservation.getProductId(),
+                            reservation.getQuantity()
+                    );
+
+            if (affectedRows == 0) {
+                throw new IllegalStateException(
+                        "Unable to release inventory reservation: "
+                                + reservation.getId()
+                );
+            }
 
             reservation.release();
+
+            /*
+             * Explicit save because the bulk inventory update
+             * clears the persistence context.
+             */
+            reservationRepository.save(reservation);
         }
     }
 }

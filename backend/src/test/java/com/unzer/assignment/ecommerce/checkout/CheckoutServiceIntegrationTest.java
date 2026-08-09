@@ -72,6 +72,7 @@ class CheckoutServiceIntegrationTest {
         )).thenReturn(
                 new PaymentStartResult(
                         "crd-test",
+                        "s-pay-test-123",
                         "txn-test-123",
                         null
                 )
@@ -146,6 +147,7 @@ class CheckoutServiceIntegrationTest {
         )).thenReturn(
                 new PaymentStartResult(
                         "s-wro-test",
+                        "s-pay-wero-test",
                         "txn-wero-test",
                         "https://wero.example/redirect"
                 )
@@ -178,5 +180,8 @@ class CheckoutServiceIntegrationTest {
 
         assertThat(payment.getProviderTransactionId())
                 .isEqualTo("txn-wero-test");
+
+        assertThat(payment.getProviderPaymentId())
+                .isEqualTo("s-pay-wero-test");
     }
 }

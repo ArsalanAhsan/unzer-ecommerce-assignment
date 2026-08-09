@@ -12,6 +12,10 @@ public interface PaymentRepository
             String idempotencyKey
     );
 
+    Optional<Payment> findByProviderPaymentId(
+            String providerPaymentId
+    );
+
     Optional<Payment> findByProviderTransactionId(
             String providerTransactionId
     );

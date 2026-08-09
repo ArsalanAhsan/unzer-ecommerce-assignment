@@ -69,6 +69,7 @@ public class PaymentService {
 
         payment.attachProviderReferences(
                 result.paymentTypeId(),
+                result.paymentId(),
                 result.transactionId()
         );
     }
