@@ -8,6 +8,7 @@ import com.unzer.assignment.ecommerce.order.OrderService;
 import org.springframework.stereotype.Service;
 import com.unzer.assignment.ecommerce.payment.Payment;
 import com.unzer.assignment.ecommerce.payment.PaymentService;
+import com.unzer.assignment.ecommerce.payment.PaymentStartResult;
 
 @Service
 public class CheckoutService {
@@ -76,12 +77,25 @@ public class CheckoutService {
                         idempotencyKey
                 );
 
+        PaymentStartResult paymentResult =
+                paymentService.startPayment(
+                        payment,
+                        updatedOrder,
+                        request.paymentTypeId()
+                );
+
+        paymentService.attachProviderReferences(
+                payment.getId(),
+                paymentResult
+        );
+
         return new CheckoutResponse(
                 updatedOrder.getId(),
                 updatedOrder.getStatus(),
                 payment.getId(),
                 updatedOrder.getTotalAmountMinor(),
-                updatedOrder.getCurrency()
+                updatedOrder.getCurrency(),
+                paymentResult.redirectUrl()
         );
     }
 }

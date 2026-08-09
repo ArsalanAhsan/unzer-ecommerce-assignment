@@ -3,18 +3,21 @@ package com.unzer.assignment.ecommerce.payment;
 import com.unzer.assignment.ecommerce.order.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.unzer.assignment.ecommerce.payment.PaymentRepository;
 
+import java.util.UUID;
 
 @Service
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
+    private final PaymentProvider paymentProvider;
 
     public PaymentService(
-            PaymentRepository paymentRepository
+            PaymentRepository paymentRepository,
+            PaymentProvider paymentProvider
     ) {
         this.paymentRepository = paymentRepository;
+        this.paymentProvider = paymentProvider;
     }
 
     @Transactional
@@ -37,5 +40,36 @@ public class PaymentService {
                                 )
                         )
                 );
+    }
+
+    public PaymentStartResult startPayment(
+            Payment payment,
+            Order order,
+            String paymentTypeId
+    ) {
+
+        // External Unzer network call.
+        // Intentionally NOT inside a database transaction.
+        return paymentProvider.startPayment(
+                order,
+                payment.getMethod(),
+                paymentTypeId
+        );
+    }
+
+    @Transactional
+    public void attachProviderReferences(
+            UUID paymentId,
+            PaymentStartResult result
+    ) {
+
+        Payment payment = paymentRepository
+                .findById(paymentId)
+                .orElseThrow();
+
+        payment.attachProviderReferences(
+                result.paymentTypeId(),
+                result.transactionId()
+        );
     }
 }

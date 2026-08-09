@@ -96,6 +96,11 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.unzer.payment</groupId>
+			<artifactId>java-sdk</artifactId>
+			<version>5.9.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>

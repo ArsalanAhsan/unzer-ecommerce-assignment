@@ -9,6 +9,7 @@ public record CheckoutResponse(
         OrderStatus status,
         UUID paymentId,
         Long totalAmountMinor,
-        String currency
+        String currency,
+        String redirectUrl
 ) {
 }
