@@ -104,6 +104,21 @@ public class Order {
         status = OrderStatus.CANCELLED;
     }
 
+    public void markRefunded() {
+
+        if (status == OrderStatus.REFUNDED) {
+            return;
+        }
+
+        if (status != OrderStatus.PAID) {
+            throw new IllegalStateException(
+                    "Only a paid order can be refunded"
+            );
+        }
+
+        status = OrderStatus.REFUNDED;
+    }
+
     public UUID getId() {
         return id;
     }

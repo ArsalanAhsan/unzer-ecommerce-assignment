@@ -111,6 +111,39 @@ public class Payment {
         status = PaymentStatus.FAILED;
         updatedAt = Instant.now();
     }
+    public void markRefundPending() {
+
+        if (status == PaymentStatus.REFUND_PENDING) {
+            return;
+        }
+
+        if (status != PaymentStatus.SUCCEEDED) {
+            throw new IllegalStateException(
+                    "Only a successful payment can be refunded"
+            );
+        }
+
+        status = PaymentStatus.REFUND_PENDING;
+        updatedAt = Instant.now();
+    }
+
+    public void markRefunded() {
+
+        if (status == PaymentStatus.REFUNDED) {
+            return;
+        }
+
+        if (status != PaymentStatus.SUCCEEDED
+                && status != PaymentStatus.REFUND_PENDING) {
+            throw new IllegalStateException(
+                    "Payment cannot be marked as refunded from status: "
+                            + status
+            );
+        }
+
+        status = PaymentStatus.REFUNDED;
+        updatedAt = Instant.now();
+    }
 
     public UUID getId() {
         return id;

@@ -88,7 +88,12 @@ public class PaymentReconciliationService {
             }
 
             case REFUNDED -> {
-                // Step 11.
+
+                payment.markRefunded();
+
+                orderService.markRefunded(
+                        payment.getOrderId()
+                );
             }
         }
 

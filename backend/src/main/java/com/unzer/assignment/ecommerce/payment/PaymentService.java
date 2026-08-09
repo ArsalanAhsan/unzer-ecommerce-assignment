@@ -57,6 +57,49 @@ public class PaymentService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public Payment getPayment(UUID paymentId) {
+
+        return paymentRepository.findById(paymentId)
+                .orElseThrow(() ->
+                        new PaymentNotFoundException(paymentId)
+                );
+    }
+
+    public RefundResult refundWithProvider(
+            Payment payment
+    ) {
+
+        return paymentProvider.refund(
+                payment.getProviderPaymentId(),
+                payment.getProviderTransactionId()
+        );
+    }
+
+    @Transactional
+    public void markRefunded(UUID paymentId) {
+
+        Payment payment = paymentRepository
+                .findById(paymentId)
+                .orElseThrow(() ->
+                        new PaymentNotFoundException(paymentId)
+                );
+
+        payment.markRefunded();
+    }
+
+    @Transactional
+    public void markRefundPending(UUID paymentId) {
+
+        Payment payment = paymentRepository
+                .findById(paymentId)
+                .orElseThrow(() ->
+                        new PaymentNotFoundException(paymentId)
+                );
+
+        payment.markRefundPending();
+    }
+
     @Transactional
     public void attachProviderReferences(
             UUID paymentId,

@@ -13,4 +13,9 @@ public interface PaymentProvider {
     PaymentProviderStatus getPaymentStatus(
             String providerPaymentId
     );
+
+    RefundResult refund(
+            String providerPaymentId,
+            String providerTransactionId
+    );
 }

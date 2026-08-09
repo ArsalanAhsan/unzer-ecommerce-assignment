@@ -10,6 +10,8 @@ import com.unzer.payment.communication.HttpCommunicationException;
 import com.unzer.payment.paymenttypes.Wero;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import com.unzer.assignment.ecommerce.payment.RefundResult;
+import com.unzer.payment.BaseTransaction;
 
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
@@ -196,6 +198,55 @@ public class UnzerPaymentProvider implements PaymentProvider {
 
             throw new IllegalStateException(
                     "Unable to fetch Unzer payment status",
+                    exception
+            );
+        }
+    }
+
+    @Override
+    public RefundResult refund(
+            String providerPaymentId,
+            String providerTransactionId
+    ) {
+
+        validateConfiguration();
+
+        if (providerPaymentId == null
+                || providerPaymentId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Provider payment ID is required for refund"
+            );
+        }
+
+        if (providerTransactionId == null
+                || providerTransactionId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Provider charge ID is required for refund"
+            );
+        }
+
+        try {
+
+            Unzer unzer = createClient();
+
+            var cancel = unzer.cancelCharge(
+                    providerPaymentId,
+                    providerTransactionId
+            );
+
+            boolean succeeded =
+                    cancel.getStatus()
+                            == BaseTransaction.Status.SUCCESS;
+
+            return new RefundResult(
+                    cancel.getId(),
+                    succeeded
+            );
+
+        } catch (HttpCommunicationException exception) {
+
+            throw new IllegalStateException(
+                    "Unzer refund request failed",
                     exception
             );
         }

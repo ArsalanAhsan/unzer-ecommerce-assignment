@@ -75,6 +75,12 @@ public class OrderService {
                 .cancel();
     }
 
+    @Transactional
+    public void markRefunded(UUID orderId) {
+        getRequiredOrder(orderId)
+                .markRefunded();
+    }
+
     @Transactional(readOnly = true)
     public Order getOrder(UUID orderId) {
         return getRequiredOrder(orderId);
